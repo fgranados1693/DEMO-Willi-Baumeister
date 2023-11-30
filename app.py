@@ -24,7 +24,12 @@ app_ui = ui.page_fluid(
         ui.column(6,
             ui.input_radio_buttons("image_choice", "Choose an Image",
             choices={"A.png": "A", "B.png": "B", "C.png": "C"}, selected="A"),
-        ),        
+        ),   
+        ui.column(6,
+            ui.tags.h4("Upload an image from device"),   
+            ui.p(ui.input_action_button("x2", "Upload image", class_="btn-primary")),   
+        ) 
+         
     ),
     ui.tags.div(
          {"class": "card"},
