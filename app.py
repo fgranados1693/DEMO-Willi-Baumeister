@@ -6,66 +6,80 @@ from shiny import ui, render, App
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn import random_projection
+from pathlib import Path
+import shinyswatch
 
+#Refs
+css_path = Path(__file__).parent / "www" / "styles.css"
+
+#Variables 
 n_grid = 10
 
-#app_ui = ui.page_fixed(
 app_ui = ui.page_fluid(
-    ui.tags.head(
-        ui.tags.link(rel="stylesheet", type="text/css", href="bootstrap.css"),
-    ),    
+    shinyswatch.theme.minty(), 
+    ui.include_css(css_path),
+    ui.tags.h2("Willi Baumeister data visualizer", class_="app-heading"),   
     ui.row(
+        {"class": "input_container"},
         ui.column(6,
             ui.input_radio_buttons("image_choice", "Choose an Image",
             choices={"A.png": "A", "B.png": "B", "C.png": "C"}, selected="A"),
         ),        
     ),
-    ui.row(
-        ui.column(1,
-            ui.row(
-                ui.input_slider("xrange", "X range:", min=1, max=n_grid, step=1, value=0.),
+    ui.tags.div(
+         {"class": "card"},
+        ui.row(
+            ui.column(2,
+                ui.row(
+                    ui.input_slider("xrange", "X range:", min=1, max=n_grid, step=1, value=0.),
+                ),
+                ui.row(
+                    ui.input_slider("yrange", "Y range:", min=1, max=n_grid, step=1, value=0.),
+                ),
+            ),        
+            ui.column(3,
+                ui.output_plot("original_image_plot_with_section"),
             ),
-            ui.row(
-                ui.input_slider("yrange", "Y range:", min=1, max=n_grid, step=1, value=0.),
+            ui.column(3,
+                ui.output_plot("downsampled_image_plot"),
             ),
-        ),        
-        ui.column(2,
-            ui.output_plot("original_image_plot_with_section"),
-        ),
-        ui.column(2,
-            ui.output_plot("downsampled_image_plot"),
-        ),
-        ui.column(2,
-            ui.output_plot("color_points_plot"),
+            ui.column(3,
+                ui.output_plot("color_points_plot"),
+            ),
         ),
     ),
-    ui.row(
-        ui.column(1,        
-            ui.input_slider("obs", "Row:", min=0., max=1., value=0.5),
+    ui.tags.div(
+         {"class": "card"},
+        ui.row(
+            ui.column(2,        
+                ui.input_slider("obs", "Row:", min=0., max=1., value=0.5),
+            ),
+            ui.column(3,
+                ui.output_plot("frequency_spectrum_plot"),
+            ),
+            ui.column(3,
+                ui.output_plot("pixel_intensity_histogram"),
+            ),        
+        ),  
+    ),   
+    ui.tags.div(  
+        {"class": "card"},
+        ui.row(
+            ui.column(2,         
+                ui.input_slider("threshold", "Threshold:", min=0., max=1., value=0.5),
+            ),
+            ui.column(3,
+                ui.output_plot("plot_reds"),
+            ),
+            ui.column(3,
+                ui.output_plot("plot_greens"),
+            ),   
+            ui.column(3,
+                ui.output_plot("plot_blues"),
+            ),                   
         ),
-        ui.column(3,
-            ui.output_plot("frequency_spectrum_plot"),
-        ),
-        ui.column(3,
-            ui.output_plot("pixel_intensity_histogram"),
-        ),        
-    ),       
-    ui.row(
-        ui.column(1,         
-            ui.input_slider("threshold", "threshold:", min=0., max=1., value=0.5),
-        ),
-        ui.column(2,
-            ui.output_plot("plot_reds"),
-        ),
-        ui.column(2,
-            ui.output_plot("plot_greens"),
-        ),   
-        ui.column(2,
-            ui.output_plot("plot_blues"),
-        ),                   
     ),
-)    
-
+)
 
 def server(input, output, session):
     @output
@@ -188,8 +202,6 @@ def server(input, output, session):
 
         return plt.gcf()
 
-
-
     @output
     @render.plot
     def plot_reds():
@@ -200,7 +212,7 @@ def server(input, output, session):
         white_image = np.ones_like(image_rgb) * 255
         result_image = np.where(red_mask[:, :, None], image_rgb, white_image)
         plt.imshow(result_image)
-        plt.title('Red Channel after Thresholding')
+        plt.title('Red Channel after Thresholding', color = '#333333')
         plt.axis('off')
         return plt.gcf()
 
@@ -214,7 +226,7 @@ def server(input, output, session):
         white_image = np.ones_like(image_rgb) * 255
         result_image = np.where(green_mask[:, :, None], image_rgb, white_image)
         plt.imshow(result_image)
-        plt.title('Green Channel after Thresholding')
+        plt.title('Green Channel after Thresholding', color = '#333333')
         plt.axis('off')
         return plt.gcf()
 
@@ -228,14 +240,13 @@ def server(input, output, session):
         white_image = np.ones_like(image_rgb) * 255
         result_image = np.where(blue_mask[:, :, None], image_rgb, white_image)
         plt.imshow(result_image)
-        plt.title('Blue Channel after Thresholding')
+        plt.title('Blue Channel after Thresholding', color = '#333333')
         plt.axis('off')
         return plt.gcf()
 
 def apply_threshold(image_rgb, channel_index, threshold):
     channel = image_rgb[:, :, channel_index]
     return np.where(channel > threshold, 1, 0)
-
 
 def load_image_rgb(filename):
     image = cv2.imread(f"./{filename}")
@@ -262,4 +273,3 @@ def mark_section_on_image(image_rgb, x_range, y_range):
 
 
 app = App(app_ui, server)
-
