@@ -65,13 +65,18 @@ app_ui = ui.page_fluid(
     ui.tags.div(
          {"class": "card"},
         ui.row(
-            ui.column(2,        
-                ui.input_slider("obs", "Row:", min=0., max=1., value=0.5),
+            ui.column(2,    
+                ui.row(
+                    ui.input_slider("obs", "Row:", min=0., max=1., value=0.5)
+                ),
+                ui.row(
+                    ui.input_select("channel", "Select channel", choices = {"red" : "Red", "green": "Green", "blue": "Blue"}),
+                )   
             ),
-            ui.column(3,
+            ui.column(5,
                 ui.output_plot("frequency_spectrum_plot"),
             ),
-            ui.column(3,
+            ui.column(5,
                 ui.output_plot("pixel_intensity_histogram"),
             ),        
         ),  
@@ -205,23 +210,25 @@ def server(input, output, session):
         image_rgb, x_range, y_range = load_and_slice_image(input)
         downsampled_image = image_rgb[y_range[0]:y_range[1], x_range[0]:x_range[1]]
 
-        # Convert to grayscale for intensity histogram
-        grayscale_image = cv2.cvtColor(downsampled_image, cv2.COLOR_RGB2GRAY)
-        
-        # Calculate histogram
-        hist = cv2.calcHist([grayscale_image], [0], None, [256], [0, 256])
+        channels = {"red" : 0, "green": 1, "blue" : 2}
+
+        # Extract the red channel
+        channel = downsampled_image[:, :, channels[input.channel()]]
+
+        # Calculate histogram for the red channel
+        hist = cv2.calcHist([channel], [0], None, [256], [0, 256])
         hist = hist.ravel() / hist.max()  # Normalize the histogram
 
         # Create bins for the histogram
         bins = np.arange(257)
 
         # Plot the histogram as a bar chart
-        plt.bar(bins[:-1], hist, width=1, color='blue')
+        plt.bar(bins[:-1], hist, width=1, color=input.channel())
         plt.xlim([0, 256])
-        plt.title("Pixel Intensity Histogram")
-        plt.yscale("log")
+        plt.title("Red Channel Intensity Histogram")
         plt.xlabel("Pixel Intensity")
         plt.ylabel("Normalized Frequency")
+
         return plt.gcf()
 
     @output
