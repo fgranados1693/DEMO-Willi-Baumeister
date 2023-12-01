@@ -1,4 +1,5 @@
 import cv2
+import io
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
@@ -8,10 +9,16 @@ from sklearn.decomposition import PCA
 from sklearn import random_projection
 from pathlib import Path
 import shinyswatch
+from PIL import Image
 
 #Refs
 css_path = Path(__file__).parent / "www" / "styles.css"
+image_path = Path(__file__).parent / "www"
+image_black_meta = str(image_path / "mblack_meta.png")
+image_bluxao = str(image_path / "mbluxao-1955.png")
+image_mit_rotem_kreis = str(image_path / "mit_rotem_kreis.png")
 
+print(image_black_meta)
 #Variables 
 n_grid = 10
 
@@ -23,13 +30,15 @@ app_ui = ui.page_fluid(
         {"class": "input_container"},
         ui.column(6,
             ui.input_radio_buttons("image_choice", "Choose an Image",
-            choices={"A.png": "A", "B.png": "B", "C.png": "C"}, selected="A"),
+            choices = {
+            "mblack_meta.png": "Black metamorphosis",
+            "mbluxao-1955.png": "Bluxao",
+            "mit_rotem_kreis.png": "Mit rotem Kreis"}, selected="mblack_meta.png"),
         ),   
         ui.column(6,
-            ui.tags.h4("Upload an image from device"),   
-            ui.p(ui.input_action_button("x2", "Upload image", class_="btn-primary")),   
-        ) 
-         
+            ui.tags.h4("Upload an image from device"),
+            ui.input_file("upload_image", "", multiple=False)           
+        )         
     ),
     ui.tags.div(
          {"class": "card"},
@@ -87,6 +96,16 @@ app_ui = ui.page_fluid(
 )
 
 def server(input, output, session):
+
+ #   @output
+ #   @render.plot
+ #   def original_image_plot():
+ #       image_rgb = load_image_rgb(input.image_choice())
+ #       plt.imshow(image_rgb)
+ #       plt.axis('off')
+ #       plt.title("Original Image")
+ #       return plt.gcf()
+
     @output
     @render.plot
     def original_image_plot():
@@ -115,7 +134,6 @@ def server(input, output, session):
         plt.axis('off')
         plt.title("Downsampled Image")
         return plt.gcf()
-
 
     @output
     @render.plot
@@ -204,7 +222,6 @@ def server(input, output, session):
         plt.yscale("log")
         plt.xlabel("Pixel Intensity")
         plt.ylabel("Normalized Frequency")
-
         return plt.gcf()
 
     @output
@@ -258,10 +275,21 @@ def load_image_rgb(filename):
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 def load_and_slice_image(input):
-    image_rgb = load_image_rgb(input.image_choice())
+    image_choice = input.image_choice()
+    if image_choice in ["mblack_meta.png", "mbluxao-1955.png", "mit_rotem_kreis.png"]:
+        image_rgb = load_image_rgb(image_choice)
+    elif input.upload_new_image:
+        uploaded_image = input.upload_new_image
+        if uploaded_image is not None:
+             image_rgb = load_image_rgb(uploaded_image)
+    else:
+        # Default to A.png if no valid choice or uploaded image
+        image_rgb = load_image_rgb("mblack_meta.png")
+
     img_length, img_width = image_rgb.shape[:2]
     x_range, y_range = calculate_slice_range(input.xrange(), input.yrange(), img_length, img_width)
     return image_rgb, x_range, y_range
+
 
 def calculate_slice_range(x_input, y_input, img_length, img_width):
     x_range = (int((x_input - 1) / n_grid * img_width), int(x_input / n_grid * img_width))
